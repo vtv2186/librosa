@@ -26,7 +26,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 import librosa
-
+import scipy, scipy.spatial
 
 ############################################################
 # ---------------------
@@ -37,20 +37,23 @@ import librosa
 # # And a second version, slightly faster.
 # x_2, fs = librosa.load('audio/sir_duke_fast.ogg')
 
-x_1, fs = librosa.load('audio/vishnu.ogg')
+x_1, fs = librosa.load('audio/vishnu.ogg',duration = 6)
 # And a second version, slightly faster.
-x_2, fs = librosa.load('audio/vishnu_noise.ogg')
+x_2, fs = librosa.load('audio/vishnu_highPitch.ogg', duration = 6)
 
-x_3, fs = librosa.load('audio/vishnu_2.ogg')
+x_3, fs = librosa.load('audio/vishnu_with_noise.ogg', duration = 6)
 
 
-fig, ax = plt.subplots(nrows=2, sharex=True, sharey=True)
+fig, ax = plt.subplots(nrows=3, sharex=True, sharey=True)
 librosa.display.waveshow(x_1, sr=fs, ax=ax[0])
 ax[0].set(title='Slower Version $X_1$')
 ax[0].label_outer()
 
 librosa.display.waveshow(x_2, sr=fs, ax=ax[1])
-ax[1].set(title='Faster Version $X_2$')
+ax[1].set(title='Sirisha Version $X_1$')
+
+librosa.display.waveshow(x_3, sr=fs, ax=ax[2])
+ax[2].set(title='Noisy Version $X_1$')
 
 #########################
 # -----------------------
@@ -80,6 +83,12 @@ ax[1].set(title='Chroma Representation of $X_2$')
 librosa.display.specshow(x_3_chroma, x_axis='time',
                          y_axis='chroma',
                          hop_length=hop_length, ax=ax[2])
+
+ax[2].set(title='Chroma Representation of $X_3$')
+
+librosa.display.specshow(x_3_chroma, x_axis='time',
+                         y_axis='chroma',
+                         hop_length=hop_length, ax=ax[2])
 fig.colorbar(img, ax=ax)
 
 
@@ -90,6 +99,7 @@ fig.colorbar(img, ax=ax)
 D, wp = librosa.sequence.dtw(X=x_1_chroma, Y=x_2_chroma, metric='cosine')
 D2, wp2 = librosa.sequence.dtw(X=x_1_chroma, Y=x_3_chroma, metric='cosine')
 wp_s = librosa.frames_to_time(wp, sr=fs, hop_length=hop_length)
+wp_s_2 = librosa.frames_to_time(wp2, sr=fs, hop_length=hop_length)
 
 fig, ax = plt.subplots()
 img = librosa.display.specshow(D, x_axis='time', y_axis='time', sr=fs,
@@ -113,11 +123,11 @@ fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, sharey=True, figsize=(8,4))
 
 # Plot x_2
 librosa.display.waveshow(x_2, sr=fs, ax=ax2)
-ax2.set(title='Faster Version $X_2$')
+ax2.set(title='Sirisha Version $X_2$')
 
 # Plot x_1
 librosa.display.waveshow(x_1, sr=fs, ax=ax1)
-ax1.set(title='Slower Version $X_1$')
+ax1.set(title='Original Version $X_1$')
 ax1.label_outer()
 
 
@@ -132,7 +142,40 @@ for tp1, tp2 in wp_s[::len(wp_s)//n_arrows]:
                           alpha=0.5)
     con.set_in_layout(False)  # This is needed to preserve layout
     ax2.add_artist(con)
+    
+    
+ ### noisy version mapping   
+    
+fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, sharey=True, figsize=(8,4))
 
+# Plot x_2
+librosa.display.waveshow(x_3, sr=fs, ax=ax2)
+ax2.set(title='Vishnu Version Noisy $X_2$')
+
+# Plot x_1
+librosa.display.waveshow(x_1, sr=fs, ax=ax1)
+ax1.set(title='Original Version $X_1$')
+ax1.label_outer()
+
+
+n_arrows = 20
+for tp1, tp2 in wp_s_2[::len(wp_s_2)//n_arrows]:
+    # Create a connection patch between the aligned time points
+    # in each subplot
+    con = ConnectionPatch(xyA=(tp1, 0), xyB=(tp2, 0),
+                          axesA=ax1, axesB=ax2,
+                          coordsA='data', coordsB='data',
+                          color='r', linestyle='--',
+                          alpha=0.5)
+    con.set_in_layout(False)  # This is needed to preserve layout
+    ax2.add_artist(con)    
+    
+###### cross correlation
+
+#vishnu_sirisha=scipy.spatial.distance.euclidean(x_1_chroma,x_2_chroma)
+#vishnu_vishnu_echo=scipy.spatial.distance.euclidean(x_1_chroma,x_3_chroma)
+x_1_x_2 = sum(D[n,m] for (n,m) in wp)
+x_1_x_3 = sum(D2[n,m] for (n,m) in wp2)
 ###########################################################
 # -------------
 # Next steps...
